@@ -1,0 +1,74 @@
+# Demo del Taller D: la API de la PR1 dos veces (dos réplicas) detrás de nginx, con su MySQL.
+# Arranque: docker compose up -d --build   Parada: docker compose down -v   (sin volumen: cada arranque, datos nuevos)
+name: taller-d-demo
+
+# lo que comparten las dos réplicas: la misma imagen, hecha con el código de smart-campus-api (que no se toca)
+x-api: &api
+  build:
+    context: ../smart-campus-api
+    dockerfile: ../demo/Dockerfile
+  image: smart-campus-api:taller-d
+  environment:
+    # la única diferencia con la PR1: la base de datos se llama "mysql" dentro de la red de Docker
+    SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/smart_campus
+  depends_on:
+    mysql:
+      condition: service_healthy
+  restart: "no"
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: mysql-taller-d
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: smart_campus
+      MYSQL_USER: smartcampus
+      MYSQL_PASSWORD: smartcampus
+    ports:
+      - "3309:3306"   # la API con depurador (fuera de Docker) entra por aquí
+    volumes:
+      - ../sql/smart_campus_schema.sql:/docker-entrypoint-initdb.d/1_schema.sql:ro
+      - ../sql/smart_campus_datos.sql:/docker-entrypoint-initdb.d/2_datos.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks:
+      demo:
+        ipv4_address: 172.28.0.10
+
+  replica-1:
+    <<: *api
+    container_name: replica-1
+    networks:
+      demo:
+        ipv4_address: 172.28.0.11   # IP fija para que nginx diga qué réplica ha contestado
+
+  replica-2:
+    <<: *api
+    container_name: replica-2
+    networks:
+      demo:
+        ipv4_address: 172.28.0.12
+
+  balanceador:
+    image: nginx:1.27-alpine
+    container_name: balanceador
+    ports:
+      - "8090:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - replica-1
+      - replica-2
+    networks:
+      demo:
+        ipv4_address: 172.28.0.20
+
+networks:
+  demo:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24

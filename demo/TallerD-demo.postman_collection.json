@@ -1,0 +1,101 @@
+{
+  "info": {
+    "name": "Taller D - Demo Spring Boot",
+    "description": "Peticiones de la demo del Taller D (Spring Boot). La API con depurador escucha en el 8080 y el balanceador de las dos replicas en el 8090.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "balanceador", "value": "http://localhost:8090" }
+  ],
+  "item": [
+    {
+      "name": "1 Crear sensor (se para en el depurador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Devuelve 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sensor CO2 aula 3.1\",\n  \"type\": \"CO2\",\n  \"location\": \"Aula 3.1\",\n  \"ip\": \"192.168.10.31\",\n  \"status\": \"ACTIVE\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/sensors",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "sensors"]
+        }
+      }
+    },
+    {
+      "name": "2 Sensor sin nombre y con IP mala (400, no llega al controlador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Devuelve 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"\",\n  \"type\": \"CO2\",\n  \"location\": \"Aula 3.1\",\n  \"ip\": \"999.10.10.10\",\n  \"status\": \"ACTIVE\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/sensors",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "sensors"]
+        }
+      }
+    },
+    {
+      "name": "3 Listar sensores por el balanceador (mira la cabecera X-Replica)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Devuelve 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Dice que replica ha contestado\", function () {",
+              "    pm.response.to.have.header(\"X-Replica\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{balanceador}}/api/sensors",
+          "host": ["{{balanceador}}"],
+          "path": ["api", "sensors"]
+        }
+      }
+    }
+  ]
+}

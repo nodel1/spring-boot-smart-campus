@@ -1,0 +1,25 @@
+{
+	// Espacio de trabajo de VS Code para la demo: abre el proyecto de la PR1 sin añadirle nada
+	// y trae la configuración del depurador (engancharse a la API que arranca arranca-api-depuracion.cmd).
+	"folders": [
+		{ "path": "../smart-campus-api" }
+	],
+	"settings": {
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"debug.openDebug": "openOnDebugBreak",
+		"debug.focusWindowOnBreak": true
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"type": "java",
+				"name": "Adjuntar a la API (Taller D)",
+				"request": "attach",
+				"hostName": "localhost",
+				"port": 5005,
+				"projectName": "smart-campus-api"
+			}
+		]
+	}
+}
